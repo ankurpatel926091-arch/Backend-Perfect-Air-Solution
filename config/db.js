@@ -1,4 +1,12 @@
 import mongoose from "mongoose";
+import dns from "node:dns";
+
+// Prevent querySrv ECONNREFUSED on local Windows/ISP networks
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (err) {
+  // Ignore in environments where setServers is restricted
+}
 
 const connectDB = async () => {
   try {

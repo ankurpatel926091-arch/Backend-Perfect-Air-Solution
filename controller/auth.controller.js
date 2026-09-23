@@ -18,7 +18,10 @@ export const adminLogin = async (req, res) => {
       return res.status(500).json({ message: 'Admin credentials not set on server' });
     }
 
-    if (email !== validEmail || password !== validPass) {
+    if (
+      email.trim().toLowerCase() !== validEmail.trim().toLowerCase() ||
+      String(password).trim() !== String(validPass).trim()
+    ) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
