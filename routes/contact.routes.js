@@ -1,8 +1,12 @@
 import express from "express";
-import { submitContactForm } from "../controller/contact.controller.js";
+import { createContact,  getContacts, } from "../controllers/contactController.js";
+import { verifyAdmin } from "../middleware/admin.middleware.js";
 
 const router = express.Router();
 
-router.post("/", submitContactForm);
+router.post("/send", createContact);
+
+// GET ki API hai
+router.get("/get", verifyAdmin, getContacts);
 
 export default router;

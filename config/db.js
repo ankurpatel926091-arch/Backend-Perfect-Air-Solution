@@ -1,28 +1,19 @@
+import dns from "dns";
 import mongoose from "mongoose";
-import dns from "node:dns";
 
-// Prevent querySrv ECONNREFUSED on local Windows/ISP networks
-try {
-  dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch (err) {
-  // Ignore in environments where setServers is restricted
-}
+// Fix querySrv ECONNREFUSED issue by setting Google DNS servers
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URL;
-    if (!mongoUri) {
-      console.warn("⚠️ MONGODB_URL is missing from .env");
-      return;
-    }
-
-    await mongoose.connect(mongoUri, {
-      dbName: process.env.MONGODB_DB_NAME || 'perfect_air_solution',
+    const connection = await mongoose.connect(process.env.MONGODB_URL, {
+      dbName: process.env.MONGODB_DB_NAME || "perfect_air_solution",
     });
-    console.log(`✅ MongoDB Connected to database: ${process.env.MONGODB_DB_NAME || 'perfect_air_solution'}`);
+
+    console.log(`MongoDB Connected: ${connection.connection.host}`);
   } catch (error) {
-    console.error(`⚠️ MongoDB Connection Warning: ${error.message}`);
-    console.error("   (Ensure your IP is whitelisted in MongoDB Atlas Network Access: 0.0.0.0/0)");
+    console.error(`MongoDB Connection Error: ${error.message}`);
+    process.exit(1);
   }
 };
 

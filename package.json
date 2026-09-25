@@ -1,30 +1,38 @@
 {
-  "name": "perfect-air-solution-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "Backend API for Perfect Air Solution",
+  "description": "Backend for Perfect Air Solution",
   "main": "server.js",
-  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ankurpatel926091-arch/Backend-Perfect-Air-Solution.git"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "mongodb",
+    "mern"
+  ],
+  "author": "Ankur Patel",
   "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/ankurpatel926091-arch/Backend-Perfect-Air-Solution/issues"
+  },
+  "homepage": "https://github.com/ankurpatel926091-arch/Backend-Perfect-Air-Solution#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^1.41.3",
+    "cloudinary": "^2.11.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
+    "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.2.2",
-    "multer": "^2.0.2",
-    "multer-storage-cloudinary": "^4.0.0",
-    "resend": "^6.10.0"
-  },
-  "devDependencies": {
+    "mongoose": "^9.10.2",
+    "multer": "^2.4.0",
     "nodemon": "^3.1.14"
   }
 }
