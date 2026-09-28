@@ -1,10 +1,7 @@
+import mongoose from "mongoose";
 import Gallery from "../models/gallery.model.js";
 import cloudinary from "../config/cloudinary.js";
-
-
-
 import GalleryCategory from "../models/galleryCategory.model.js";
-  
 
 export const createGallery = async (req, res) => {
   try {
@@ -20,14 +17,41 @@ export const createGallery = async (req, res) => {
       folder: "perfect-air-solution/gallery",
     });
 
-    const gallery = await Gallery.create({
-      galleryCategory,
+    let catId = null;
+    if (galleryCategory) {
+      if (mongoose.Types.ObjectId.isValid(galleryCategory)) {
+        catId = galleryCategory;
+      } else {
+        let found = await GalleryCategory.findOne({
+          $or: [
+            { title: new RegExp(`^${galleryCategory}$`, "i") },
+            { slug: new RegExp(`^${galleryCategory}$`, "i") },
+          ],
+        });
+        if (!found) {
+          try {
+            found = await GalleryCategory.create({
+              title: galleryCategory,
+              isActive: true,
+            });
+          } catch (e) {}
+        }
+        if (found) catId = found._id;
+      }
+    }
 
+    let isActive = true;
+    if (req.body.isActive !== undefined) {
+      isActive = req.body.isActive === "false" || req.body.isActive === false ? false : true;
+    }
+
+    const gallery = await Gallery.create({
+      galleryCategory: catId,
       image: {
         url: result.secure_url,
         public_id: result.public_id,
       },
-      isActive:true
+      isActive,
     });
 
     res.status(201).json({
@@ -80,7 +104,27 @@ export const updateGallery = async (req, res) => {
 
     // Category update
     if (galleryCategory) {
-      gallery.galleryCategory = galleryCategory;
+      if (mongoose.Types.ObjectId.isValid(galleryCategory)) {
+        gallery.galleryCategory = galleryCategory;
+      } else {
+        let found = await GalleryCategory.findOne({
+          $or: [
+            { title: new RegExp(`^${galleryCategory}$`, "i") },
+            { slug: new RegExp(`^${galleryCategory}$`, "i") },
+          ],
+        });
+        if (!found) {
+          try {
+            found = await GalleryCategory.create({
+              title: galleryCategory,
+              isActive: true,
+            });
+          } catch (e) {}
+        }
+        if (found) {
+          gallery.galleryCategory = found._id;
+        }
+      }
     }
 
     // Image update
@@ -101,6 +145,11 @@ export const updateGallery = async (req, res) => {
       };
     }
 
+    // Status update
+    if (req.body.isActive !== undefined) {
+      gallery.isActive = req.body.isActive === "true" || req.body.isActive === true;
+    }
+
     await gallery.save();
 
     res.status(200).json({
@@ -108,6 +157,7 @@ export const updateGallery = async (req, res) => {
       gallery,
     });
   } catch (error) {
+    console.error("Gallery Update Error:", error);
     res.status(500).json({
       message: "Failed to update gallery",
       error: error.message,
@@ -129,7 +179,29 @@ export const updateGalleryPut = async (req, res) => {
     }
 
     // Category update
-    gallery.galleryCategory = galleryCategory;
+    if (galleryCategory) {
+      if (mongoose.Types.ObjectId.isValid(galleryCategory)) {
+        gallery.galleryCategory = galleryCategory;
+      } else {
+        let found = await GalleryCategory.findOne({
+          $or: [
+            { title: new RegExp(`^${galleryCategory}$`, "i") },
+            { slug: new RegExp(`^${galleryCategory}$`, "i") },
+          ],
+        });
+        if (!found) {
+          try {
+            found = await GalleryCategory.create({
+              title: galleryCategory,
+              isActive: true,
+            });
+          } catch (e) {}
+        }
+        if (found) {
+          gallery.galleryCategory = found._id;
+        }
+      }
+    }
 
     // New image upload
     if (req.file) {
@@ -148,6 +220,11 @@ export const updateGalleryPut = async (req, res) => {
       };
     }
 
+    // Status update
+    if (req.body.isActive !== undefined) {
+      gallery.isActive = req.body.isActive === "true" || req.body.isActive === true;
+    }
+
     await gallery.save();
 
     res.status(200).json({
@@ -157,6 +234,35 @@ export const updateGalleryPut = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to update gallery",
+      error: error.message,
+    });
+  }
+};
+
+// Toggle Gallery Item Status (Active / Inactive)
+export const toggleGalleryStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const gallery = await Gallery.findById(id);
+
+    if (!gallery) {
+      return res.status(404).json({
+        message: "Gallery photo not found",
+      });
+    }
+
+    gallery.isActive = gallery.isActive === false ? true : false;
+
+    await gallery.save();
+
+    res.status(200).json({
+      message: `Photo status updated to ${gallery.isActive ? "Active" : "Inactive"}`,
+      gallery,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update gallery status",
       error: error.message,
     });
   }

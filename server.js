@@ -11,8 +11,7 @@ import galleryRoutes from "./routes/gallery.Routes.js";
 import brandRoutes from "./routes/brand.routes.js";
 import servicesRouter from "./routes/services.routes.js";
 import blogRoutes from "./routes/blog.routes.js";
-
-
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 dotenv.config();
 
@@ -31,8 +30,10 @@ app.use("/api/contact", constRoute);
 app.use("/api/galleryCategory", galleryCategoryRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/brands", brandRoutes);
+app.use("/api/brand", brandRoutes);
 app.use("/api/services", servicesRouter);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Test API
 app.get("/", (req, res) => {

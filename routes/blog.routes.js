@@ -8,8 +8,10 @@ import { verifyAdmin } from "../middleware/admin.middleware.js";
 const router = express.Router();
 
 router.post("/create", verifyAdmin, upload.single("image"), createBlog);
+router.post("/", verifyAdmin, upload.single("image"), createBlog);
 
 router.get("/get", getBlogs);
+router.get("/", getBlogs);
 
 router.get("/active", getActiveBlogs);
 

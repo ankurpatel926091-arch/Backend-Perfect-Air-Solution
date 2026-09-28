@@ -16,9 +16,10 @@ const gallerySchema = new mongoose.Schema(
         type: String,
       },
     },
-    isActive:{
-      type:Boolean
-    }
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
