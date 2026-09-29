@@ -35,23 +35,6 @@ export const createBrand = async (req, res) => {
     }
     console.log("--->>>>> upload krne se pahle ka code ");
 
-    // const uploadResult = await new Promise((resolve, reject) => {
-    //   const stream = cloudinary.uploader.upload_stream(
-    //     {
-    //       folder: "perfect-air/brands",
-    //     },
-    //     (error, result) => {
-    //       if (error) {
-    //         reject(error);
-    //       } else {
-    //         resolve(result);
-    //       }
-    //     }
-    //   );
-
-    //   stream.end(req.file.buffer);
-    // });
-
     const uploadResult = await cloudinary.uploader.upload(req.file.path, {
       folder: "perfect-air-solution/gallery",
     });
@@ -87,16 +70,65 @@ export const createBrand = async (req, res) => {
 
 // ===============================
 // GET ALL BRANDS
+// SEARCH + STATUS + PAGINATION
 // ===============================
 export const getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find().sort({ createdAt: -1 });
+    const {
+      name,
+      status,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const query = {};
+
+    const searchVal = (req.query.search || req.query.name || "").trim();
+    if (searchVal) {
+      const safeTerm = searchVal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.name = {
+        $regex: safeTerm,
+        $options: "i",
+      };
+    }
+
+    // Active / Inactive filter
+    if (status === "active") {
+      query.isActive = true;
+    }
+
+    if (status === "inactive") {
+      query.isActive = false;
+    }
+
+    // Total filtered records and overall counts
+    const [totalBrands, totalCount, activeCount, brands] = await Promise.all([
+      Brand.countDocuments(query),
+      Brand.countDocuments(),
+      Brand.countDocuments({ isActive: true }),
+      Brand.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+    ]);
+
+    const inactiveCount = totalCount - activeCount;
 
     return res.status(200).json({
       success: true,
-      count: brands.length,
+      message: "Brands fetched successfully",
+      total: totalBrands,
+      totalCount,
+      activeCount,
+      inactiveCount,
+      page: Number(page),
+      limit: Number(limit),
+      foundRecords: brands.length,
       data: brands,
     });
+
   } catch (error) {
     console.error("Get Brands Error:", error);
 

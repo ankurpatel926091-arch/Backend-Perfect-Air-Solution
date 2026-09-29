@@ -10,14 +10,13 @@ router.post("/create", verifyAdmin, upload.single("logo"), createBrand);
 
 router.get("/get", verifyAdmin, getBrands);
 
-router.get("/active",verifyAdmin, getActiveBrands);
+router.get("/active", getActiveBrands);
 
 router.put("/:id",verifyAdmin, upload.single("logo"), updateBrand);
 
 router.delete("/:id", verifyAdmin, deleteBrand);
 
-// router.patch("/status/:id",verifyAdmin, updateBrandStatus);
 
-router.patch("/status/:id/", toggleBrandStatus);
+router.patch("/status/:id/", verifyAdmin, toggleBrandStatus);
 
 export default router;

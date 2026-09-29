@@ -24,33 +24,43 @@ export const createContact = async (req, res) => {
 };
 
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const getContacts = async (req, res) => {
   try {
-    const { name, page = 1, limit = 10 } = req.query;
+    const { name, search, page = 1, limit = 10 } = req.query;
 
-    let skip = (page - 1) * limit;
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
-    let contacts;
-    let totalContacts = await Contact.find().countDocuments();
-
-    if (name) {
-      contacts = await Contact.find({
-        name: { $regex: name, $options: "i" }
-      }).sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit));
-    } else {
-      contacts = await Contact.find().sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit));
+    const rawTerm = (search || name || "").trim();
+    const query = {};
+    if (rawTerm) {
+      const safeTerm = escapeRegex(rawTerm);
+      query.$or = [
+        { name: { $regex: safeTerm, $options: "i" } },
+        { email: { $regex: safeTerm, $options: "i" } },
+        { phone: { $regex: safeTerm, $options: "i" } },
+        { service: { $regex: safeTerm, $options: "i" } },
+        { message: { $regex: safeTerm, $options: "i" } },
+      ];
     }
+
+    const totalContacts = await Contact.countDocuments(query);
+    const globalTotal = await Contact.countDocuments();
+    const contacts = await Contact.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       message: "Contacts fetched successfully",
       total: totalContacts,
-      page,
-      limit,
-      foundRecords : contacts.length,
+      globalTotal,
+      page: pageNum,
+      limit: limitNum,
+      foundRecords: contacts.length,
       contacts,
     });
   } catch (error) {

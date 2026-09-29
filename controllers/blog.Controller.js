@@ -1,5 +1,6 @@
 import Blog from "../models/blog.model.js";
 import cloudinary from "../config/cloudinary.js";
+import mongoose from "mongoose";
 
 
 // ==========================================
@@ -103,13 +104,78 @@ export const createBlog = async (req, res) => {
 // GET ALL BLOGS
 // GET /api/blogs
 // ==========================================
+// ==========================================
+// GET ALL BLOGS
+// GET /api/blogs?title=&status=&page=1&limit=10
+// ==========================================
 export const getBlogs = async (req, res) => {
   try {
-    const blogs = await Blog.find().sort({ createdAt: -1 });
+    const {
+      title,
+      status,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Search + status filter
+    const query = {};
+
+    // Search by title
+    if (title) {
+      query.title = {
+        $regex: title,
+        $options: "i",
+      };
+    }
+
+    // Status filter
+    if (status === "active") {
+      query.isActive = true;
+    }
+
+    if (status === "inactive") {
+      query.isActive = false;
+    }
+
+    // Total records after search/filter
+    const filteredTotal = await Blog.countDocuments(query);
+
+    // Overall counts
+    const totalBlogs = await Blog.countDocuments();
+    const activeBlogs = await Blog.countDocuments({
+      isActive: true,
+    });
+    const inactiveBlogs = await Blog.countDocuments({
+      isActive: false,
+    });
+
+    // Fetch paginated blogs
+    const blogs = await Blog.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber);
 
     return res.status(200).json({
       success: true,
-      count: blogs.length,
+      message: "Blogs fetched successfully",
+
+      // Overall counts
+      total: totalBlogs,
+      active: activeBlogs,
+      inactive: inactiveBlogs,
+
+      // Filtered count for pagination
+      filteredTotal,
+
+      page: pageNumber,
+      limit: limitNumber,
+      foundRecords: blogs.length,
+
       data: blogs,
     });
 
@@ -156,12 +222,29 @@ export const getActiveBlogs = async (req, res) => {
 // ==========================================
 // GET SINGLE BLOG
 // GET /api/blogs/:id
+// GET /api/blogs/:slug
 // ==========================================
 export const getBlogById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const blog = await Blog.findById(id);
+    let blog;
+
+    // If MongoDB ObjectId is provided
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      blog = await Blog.findOne({
+        _id: id,
+        isActive: true,
+      });
+    }
+
+    // Otherwise search by slug
+    if (!blog) {
+      blog = await Blog.findOne({
+        slug: id,
+        isActive: true,
+      });
+    }
 
     if (!blog) {
       return res.status(404).json({
@@ -174,7 +257,6 @@ export const getBlogById = async (req, res) => {
       success: true,
       data: blog,
     });
-
   } catch (error) {
     console.error("Get Blog By ID Error:", error);
 

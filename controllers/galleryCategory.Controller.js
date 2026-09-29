@@ -24,15 +24,52 @@ export const createGalleryCategory = async (req, res) => {
 // galleryCategory get api
 export const getGalleryCategories = async (req, res) => {
   try {
-    const galleryCategories = await GalleryCategory.find().sort({ createdAt: -1 });
+    const { name, status, page, limit } = req.query;
+
+    const query = {};
+
+    const searchVal = (req.query.search || req.query.name || "").trim();
+    if (searchVal) {
+      const safeTerm = searchVal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.title = { $regex: safeTerm, $options: "i" };
+    }
+
+    if (status === "active") {
+      query.isActive = { $ne: false };
+    }
+
+    if (status === "inactive") {
+      query.isActive = false;
+    }
+
+    const queryPromise = GalleryCategory.find(query).sort({ createdAt: -1 });
+
+    if (page && limit) {
+      const skip = (Number(page) - 1) * Number(limit);
+      queryPromise.skip(skip).limit(Number(limit));
+    }
+
+    const [totalCategories, totalCount, activeCount, galleryCategories] = await Promise.all([
+      GalleryCategory.countDocuments(query),
+      GalleryCategory.countDocuments(),
+      GalleryCategory.countDocuments({ isActive: { $ne: false } }),
+      queryPromise,
+    ]);
+
+    const inactiveCount = totalCount - activeCount;
 
     res.status(200).json({
+      success: true,
       message: "Gallery categories fetched successfully",
-      total: galleryCategories.length,
+      total: totalCategories,
+      totalCount,
+      activeCount,
+      inactiveCount,
       galleryCategories,
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: "Failed to fetch gallery categories",
       error: error.message,
     });

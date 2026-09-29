@@ -72,17 +72,71 @@ export const createGallery = async (req, res) => {
 
 export const getGallery = async (req, res) => {
   try {
-    const gallery = await Gallery.find()
-      .populate("galleryCategory")
-      .sort({ createdAt: -1 });
+    const {
+      category,
+      status,
+      page = 1,
+      limit = 8,
+    } = req.query;
 
-    res.status(200).json({
-      message: "Gallery fetched successfully",
-      total: gallery.length,
-      gallery,
-    });
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const query = {};
+
+    // Active / Inactive filter
+    if (status === "active") {
+      query.isActive = { $ne: false };
+    }
+
+    if (status === "inactive") {
+      query.isActive = false;
+    }
+
+    // Category filter
+    if (category && category !== "all") {
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        query.galleryCategory = category;
+      } else {
+        const foundCat = await GalleryCategory.findOne({
+          title: new RegExp(`^${category}$`, "i"),
+        });
+        if (foundCat) {
+          query.galleryCategory = foundCat._id;
+        }
+      }
+    }
+
+    // Parallel fetch for filtered count, overall counts, and gallery items
+    const [totalGallery, totalCount, activeCount, gallery] = await Promise.all([
+      Gallery.countDocuments(query),
+      Gallery.countDocuments(),
+      Gallery.countDocuments({ isActive: { $ne: false } }),
+      Gallery.find(query)
+        .populate("galleryCategory")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+    ]);
+
+    const inactiveCount = totalCount - activeCount;
+res.status(200).json({
+  success: true,
+  message: "Gallery fetched successfully",
+
+  total: totalCount,
+  active: activeCount,
+  inactive: inactiveCount,
+
+  filteredTotal: totalGallery,
+
+  page: Number(page),
+  limit: Number(limit),
+  foundRecords: gallery.length,
+  gallery,
+});
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: "Failed to fetch gallery",
       error: error.message,
     });
