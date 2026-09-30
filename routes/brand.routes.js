@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post("/create", verifyAdmin, upload.single("logo"), createBrand);
 
-router.get("/get", verifyAdmin, getBrands);
+router.get("/get", getBrands);
 
 router.get("/active", getActiveBrands);
 
