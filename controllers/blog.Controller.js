@@ -59,21 +59,44 @@ export const createBlog = async (req, res) => {
       folder: "perfect-air-solution/blogs",
     });
 
+    // Format default date if not provided
+    const blogDate =
+      date && date.trim()
+        ? date.trim()
+        : new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+
     // Create blog
     const blog = new Blog({
       slug,
       title,
       excerpt,
-      readTime,
-      date,
-      author,
+      readTime: (readTime && readTime.trim()) ? readTime.trim() : "5 min read",
+      date: blogDate,
+      author: (author && author.trim()) ? author.trim() : "Perfect Air Solution",
 
       image: {
         url: uploadResult.secure_url,
         public_id: uploadResult.public_id,
       },
 
-      tags: tags ? JSON.parse(tags) : [],
+      tags: tags
+        ? Array.isArray(tags)
+          ? tags
+          : typeof tags === "string"
+          ? (() => {
+              try {
+                const parsed = JSON.parse(tags);
+                return Array.isArray(parsed) ? parsed : [tags];
+              } catch {
+                return tags.split(",").map((t) => t.trim()).filter(Boolean);
+              }
+            })()
+          : []
+        : [],
 
       content: content || "",
 
@@ -332,18 +355,35 @@ export const updateBlog = async (req, res) => {
       blog.readTime = readTime;
     }
 
-    if (date !== undefined) {
+    if (date !== undefined && date !== null && date !== "") {
       blog.date = date;
+    } else if (!blog.date) {
+      blog.date = new Date(blog.createdAt || Date.now()).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
     }
 
-    if (author !== undefined) {
+    if (author !== undefined && author !== null && author !== "") {
       blog.author = author;
+    } else if (!blog.author) {
+      blog.author = "Perfect Air Solution";
     }
 
     if (tags !== undefined) {
-      blog.tags = typeof tags === "string"
-        ? JSON.parse(tags)
-        : tags;
+      blog.tags = Array.isArray(tags)
+        ? tags
+        : typeof tags === "string"
+        ? (() => {
+            try {
+              const parsed = JSON.parse(tags);
+              return Array.isArray(parsed) ? parsed : [tags];
+            } catch {
+              return tags.split(",").map((t) => t.trim()).filter(Boolean);
+            }
+          })()
+        : [];
     }
 
     if (content !== undefined) {

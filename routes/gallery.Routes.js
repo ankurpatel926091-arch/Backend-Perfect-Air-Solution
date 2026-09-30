@@ -15,7 +15,7 @@ import { verifyAdmin } from "../middleware/admin.middleware.js";
 const router = express.Router();
 
 router.post("/create", verifyAdmin, upload.single("image"), createGallery);
-router.get("/get", verifyAdmin, getGallery);
+router.get("/get",getGallery);
 router.patch("/status/:id", verifyAdmin, toggleGalleryStatus);
 router.put("/update/:id", verifyAdmin, upload.single("image"), updateGalleryPut);
 router.delete("/delete/:id", verifyAdmin, deleteGallery);

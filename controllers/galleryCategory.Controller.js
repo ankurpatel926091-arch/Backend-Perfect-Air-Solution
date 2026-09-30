@@ -4,8 +4,26 @@ export const createGalleryCategory = async (req, res) => {
   try {
     const { title, isActive } = req.body;
 
+    const trimmedTitle = (title || "").trim();
+    if (!trimmedTitle) {
+      return res.status(400).json({
+        message: "Category title is required",
+      });
+    }
+
+    const safeTitle = trimmedTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await GalleryCategory.findOne({
+      title: { $regex: `^${safeTitle}$`, $options: "i" },
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        message: "Gallery category with this name already exists",
+      });
+    }
+
     const galleryCategory = await GalleryCategory.create({
-      title,
+      title: trimmedTitle,
       isActive,
     });
 
@@ -135,12 +153,29 @@ export const updateGalleryCategory = async (req, res) => {
     const { id } = req.params;
     const { title } = req.body;
 
-    const galleryCategory = await GalleryCategory.findById(id);
-    if (!galleryCategory) {
-      return res.status(400).json({ message: "Gallery category not found!" });
+    const trimmedTitle = (title || "").trim();
+    if (!trimmedTitle) {
+      return res.status(400).json({ message: "Category title is required" });
     }
 
-    galleryCategory.title = title;
+    const galleryCategory = await GalleryCategory.findById(id);
+    if (!galleryCategory) {
+      return res.status(404).json({ message: "Gallery category not found!" });
+    }
+
+    const safeTitle = trimmedTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const existing = await GalleryCategory.findOne({
+      _id: { $ne: id },
+      title: { $regex: `^${safeTitle}$`, $options: "i" },
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        message: "Gallery category with this name already exists",
+      });
+    }
+
+    galleryCategory.title = trimmedTitle;
     await galleryCategory.save();
 
     res.status(200).json({
