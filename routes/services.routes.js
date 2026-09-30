@@ -1,7 +1,7 @@
 import express from "express";
 import upload from "../middleware/upload.Middleware.js";
 import { verifyAdmin } from "../middleware/admin.middleware.js";
-import { createServices } from "../controllers/Services.Controller.js";
+import { createServices } from "../controllers/services.Controller.js";
 
 
 const servicesRouter = express.Router();
