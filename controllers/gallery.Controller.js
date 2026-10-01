@@ -83,9 +83,18 @@ export const getGallery = async (req, res) => {
 
     const query = {};
 
+    // Get inactive categories to filter them out for active status
+    const inactiveCategories = await GalleryCategory.find({
+      isActive: false,
+    }).select("_id");
+    const inactiveCategoryIds = inactiveCategories.map((c) => c._id);
+
     // Active / Inactive filter
     if (status === "active") {
       query.isActive = { $ne: false };
+      if (inactiveCategoryIds.length > 0) {
+        query.galleryCategory = { $nin: inactiveCategoryIds };
+      }
     }
 
     if (status === "inactive") {
@@ -94,23 +103,47 @@ export const getGallery = async (req, res) => {
 
     // Category filter
     if (category && category !== "all") {
+      let catId = null;
       if (mongoose.Types.ObjectId.isValid(category)) {
-        query.galleryCategory = category;
+        catId = category;
       } else {
         const foundCat = await GalleryCategory.findOne({
           title: new RegExp(`^${category}$`, "i"),
         });
         if (foundCat) {
-          query.galleryCategory = foundCat._id;
+          catId = foundCat._id;
+        }
+      }
+
+      if (catId) {
+        if (status === "active") {
+          const isCatActive = await GalleryCategory.exists({
+            _id: catId,
+            isActive: { $ne: false },
+          });
+          if (!isCatActive) {
+            query.galleryCategory = null;
+          } else {
+            query.galleryCategory = catId;
+          }
+        } else {
+          query.galleryCategory = catId;
         }
       }
     }
+
+    const activeFilter = {
+      isActive: { $ne: false },
+      ...(inactiveCategoryIds.length > 0
+        ? { galleryCategory: { $nin: inactiveCategoryIds } }
+        : {}),
+    };
 
     // Parallel fetch for filtered count, overall counts, and gallery items
     const [totalGallery, totalCount, activeCount, gallery] = await Promise.all([
       Gallery.countDocuments(query),
       Gallery.countDocuments(),
-      Gallery.countDocuments({ isActive: { $ne: false } }),
+      Gallery.countDocuments(activeFilter),
       Gallery.find(query)
         .populate("galleryCategory")
         .sort({ createdAt: -1 })
@@ -119,21 +152,21 @@ export const getGallery = async (req, res) => {
     ]);
 
     const inactiveCount = totalCount - activeCount;
-res.status(200).json({
-  success: true,
-  message: "Gallery fetched successfully",
+    res.status(200).json({
+      success: true,
+      message: "Gallery fetched successfully",
 
-  total: totalCount,
-  active: activeCount,
-  inactive: inactiveCount,
+      total: totalCount,
+      active: activeCount,
+      inactive: inactiveCount,
 
-  filteredTotal: totalGallery,
+      filteredTotal: totalGallery,
 
-  page: Number(page),
-  limit: Number(limit),
-  foundRecords: gallery.length,
-  gallery,
-});
+      page: Number(page),
+      limit: Number(limit),
+      foundRecords: gallery.length,
+      gallery,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
