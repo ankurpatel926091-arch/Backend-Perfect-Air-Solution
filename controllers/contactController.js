@@ -1,4 +1,5 @@
 import Contact from "../models/contact.js";
+import { sendContactInquiryEmail } from "../config/nodemailer.js";
 
 export const createContact = async (req, res) => {
   try {
@@ -14,6 +15,11 @@ export const createContact = async (req, res) => {
       email,
       service,
       message,
+    });
+
+    // Send email notification via Nodemailer asynchronously
+    sendContactInquiryEmail({ name, phone, email, service, message }).catch((err) => {
+      console.error("Nodemailer Error sending contact inquiry email:", err.message);
     });
 
     res.status(201).json({ message: "Message sent successfully", contact });
@@ -70,3 +76,5 @@ export const getContacts = async (req, res) => {
     });
   }
 };
+
+
