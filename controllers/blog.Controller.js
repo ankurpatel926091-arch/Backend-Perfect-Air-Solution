@@ -499,8 +499,9 @@ export const toggleBlogStatus = async (req, res) => {
       });
     }
 
-    // Toggle true / false
-    blog.isActive = !blog.isActive;
+    // Toggle true / false safely
+    const currentStatus = blog.isActive !== false;
+    blog.isActive = !currentStatus;
 
     await blog.save();
 
